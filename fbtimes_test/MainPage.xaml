@@ -1,0 +1,109 @@
+﻿<phone:PhoneApplicationPage 
+    x:Class="fbtimes_test.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:delay="clr-namespace:Delay;assembly=PhonePerformance"
+    mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="728" 
+    d:DataContext="{d:DesignData SampleData/MainViewModelSampleData.xaml}"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait"  Orientation="Portrait"
+    shell:SystemTray.IsVisible="False" BorderThickness="0,0,0,50" BorderBrush="Black">
+
+    <!--LayoutRoot is the root grid where all page content is placed-->
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+ 
+        <!--Panorama control-->
+        <controls:Panorama Title="Facebook Times" HorizontalAlignment="Left" Width="480">
+            <!--<controls:Panorama.Background>
+                <ImageBrush ImageSource="PanoramaBackground.png"/>
+            </controls:Panorama.Background>-->
+
+            <controls:PanoramaItem x:Name="Month" Header="месяц">
+                <!--Double line list with text wrapping-->
+                <!--<HyperlinkButton Height="150" Width="150" NavigateUri="http://kommersant.ru" TargetName="_blank">
+                    <HyperlinkButton.Background>
+                        <ImageBrush ImageSource="https://atmire.com/labs17/bitstream/handle/123456789/7618/earth-map-huge.jpg?sequence=1" />
+                    </HyperlinkButton.Background>
+                </HyperlinkButton>-->
+                <StackPanel x:Name="MonthPanel">
+                    <Image Width="150" Height="100" x:Name="World" delay:LowProfileImageLoader.UriSource="https://atmireq.com/labs17/bitstream/handle/123456789/7618/earth-map-huge.jpg?sequence=1">
+                    </Image>
+                    <TextBlock x:Name="MonthText" Text="Hello!" />
+                </StackPanel>
+            </controls:PanoramaItem>
+
+            <!--Panorama item one-->
+            <controls:PanoramaItem x:Name="now" Header="сейчас">
+                <!--Double line list with text wrapping-->
+                <ListBox Margin="0,0,-12,0" ItemsSource="{Binding Items}" BorderThickness="0,0,0,1">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,17" Width="432">
+                                <TextBlock Text="{Binding LineOne}" TextWrapping="Wrap" Style="{StaticResource PhoneTextExtraLargeStyle}"/>
+                                <TextBlock Text="{Binding LineTwo}" TextWrapping="Wrap" Margin="12,-6,12,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </controls:PanoramaItem>
+
+            <controls:PanoramaItem x:Name="Day" Header="за день" Margin="0,-35,0,0">
+                <StackPanel Margin="0,-25,0,0">
+                    <ListBox x:Name="PostsDay"></ListBox>
+                    <ProgressBar IsIndeterminate="true" x:Name="CustomIndeterminateProgressBar" Style="{StaticResource CustomIndeterminateProgressBar}" Margin="0,10,0,0" />
+                </StackPanel>
+            </controls:PanoramaItem>
+
+            <controls:PanoramaItem x:Name="Week" Header="неделя">
+                <ProgressBar 
+                    IsIndeterminate="true"
+                    x:Name="customIndeterminateProgressBar"
+                    Style="{StaticResource CustomIndeterminateProgressBar}"
+                    Width="150"
+                />
+            </controls:PanoramaItem>
+            
+            <!--Panorama item two-->
+            <!--Use 'Orientation="Horizontal"' to enable a panel that lays out horizontally-->
+            <controls:PanoramaItem Header="за день">
+                <!--Double line list with image placeholder and text wrapping-->
+                <ListBox Margin="0,0,-12,0" ItemsSource="{Binding Items}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,17">
+                                <!--Replace rectangle with image-->
+                                <Rectangle Height="100" Width="100" Fill="#FFE5001b" Margin="12,0,9,0"/>
+                                <StackPanel Width="311">                                    
+                                    <TextBlock Text="{Binding LineOne}" TextWrapping="Wrap" Style="{StaticResource PhoneTextExtraLargeStyle}"/>
+                                    <TextBlock Text="{Binding LineTwo}" TextWrapping="Wrap" Margin="12,-6,12,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </controls:PanoramaItem>
+        </controls:Panorama>
+    </Grid>
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True" >
+            
+            <shell:ApplicationBarIconButton x:Name="newButton"
+                IconUri="/Images/appbar.new.rest.png" Text="new"
+                />
+            
+            <shell:ApplicationBarIconButton x:Name="folderButton"
+                IconUri="/Images/appbar.folder.rest.png" Text="folders"
+                />
+          
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+
+</phone:PhoneApplicationPage>
