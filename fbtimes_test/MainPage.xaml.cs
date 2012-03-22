@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -10,6 +11,7 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -21,6 +23,8 @@ using Microsoft.Phone.Controls;
 
 namespace fbtimes_test
 {
+    public enum Period { Now, Day, Week, Month };
+
     [DataContract]
     public class Post
     {
@@ -91,11 +95,37 @@ namespace fbtimes_test
             MonthPosts = new ObservableCollection<T>();
             DTemplate = CreateDataTemplate();
         }
+
+        protected void AppendPosts(Period period, ObservableCollection<T> NewPosts) {
+            ObservableCollection<T> WorkPosts = null;
+            switch (period) { 
+                case Period.Now:
+                    WorkPosts = NowPosts;
+                    break;
+                case Period.Day:
+                    WorkPosts = DayPosts;
+                    break;
+                case Period.Week:
+                    WorkPosts = WeekPosts;
+                    break;
+                case Period.Month:
+                    WorkPosts = MonthPosts;
+                    break;
+                default:
+                    WorkPosts = NowPosts;
+                    break;
+            }
+            foreach (T NewPost in NewPosts) {
+                WorkPosts.Add(NewPost);
+            }
+        }
+
         public abstract DataTemplate CreateDataTemplate();
-        public abstract int GetPosts();
+        public abstract int GetPosts(Period period);
     }
 
-    public class PostsPanorama<T> : AbstractPostsPanorama<T> where T : Post, new() {
+    public class PostsPanorama<T> : AbstractPostsPanorama<T> where T : Post, new() 
+    {    
         public override DataTemplate CreateDataTemplate()
         {
             string xaml = @"
@@ -133,15 +163,23 @@ namespace fbtimes_test
             return dt;
         }
 
-        public override int GetPosts()
+        public override int GetPosts(Period period)
         {
             string json = "[" +
                             "{\"Comments\":10,\"Description\":\"Правила жизни Илая Уоллака. Есть множество историй, которые не выходят у меня из головы, но вот только я ни одной не помню\",\"ImgURL\":\"https://p.twimg.com/AnDpj9ECEAA4fLA.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Правила жизни Илая Уоллака\",\"LinkURL\":\"http://esquire.ru/\"}," +
+                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
                             "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}" +
                           "]";
             MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
             DataContractJsonSerializer ser = new DataContractJsonSerializer(DayPosts.GetType());
-            DayPosts = ser.ReadObject(ms) as ObservableCollection<T>;
+            ObservableCollection<T> NewPosts = ser.ReadObject(ms) as ObservableCollection<T>;
+            bool a;
+            for (long i = 0; i < 1000000; i++)
+                a = false;
+            AppendPosts(period, NewPosts);
             return 1;
         }
         
@@ -149,6 +187,13 @@ namespace fbtimes_test
 
     public partial class MainPage : PhoneApplicationPage
     {
+        private PostsPanorama<Post> PPanorama = new PostsPanorama<Post>();
+        private ScrollBar sb = null;
+        private ScrollViewer sv = null;
+        private bool alreadyHookedScrollEvents = false;
+        StackPanel lastForDay = new StackPanel();
+        uint loadedForDay = 0;
+
         // Constructor
         public MainPage()
         {
@@ -164,10 +209,14 @@ namespace fbtimes_test
             loadProgressBar.IsIndeterminate = true;
             loadProgressBar.Style = (Style)Application.Current.Resources["CustomIndeterminateProgressBar"];
 
-            PostsPanorama<Post> PPanorama = new PostsPanorama<Post>();
-            if (PPanorama.GetPosts() == 1) {
-                PostsDay.ItemTemplate = PPanorama.DTemplate;
+            if (PPanorama.GetPosts(Period.Day) == 1) {
+                //PostsDay.ItemTemplate = PPanorama.DTemplate;
                 PostsDay.ItemsSource = PPanorama.DayPosts;
+                /*
+                PostsDay.Height = 2500;
+                PostsDay.UpdateLayout();
+                PostsDay.LayoutUpdated += new EventHandler(PostsDay_LayoutUpdated);*/
+                //PostsDay.ScrollIntoView = 
             }
 
             WebClient client = new WebClient();
@@ -175,11 +224,15 @@ namespace fbtimes_test
             client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
             try
             {
-                client.DownloadStringAsync(new Uri("http://www.theftimesvdfvdf.com/"));
+                client.DownloadStringAsync(new Uri("http://www.theftimes.com/"));
             }
             catch (Exception) {
                 client.CancelAsync();
             }
+        }
+
+        private void PostsDay_LayoutUpdated(object sender, EventArgs e) {
+            ListBox a = sender as ListBox;
         }
 
         private void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e) {
@@ -199,6 +252,129 @@ namespace fbtimes_test
             {
                 App.ViewModel.LoadData();
             }
+
+            if (alreadyHookedScrollEvents)
+                return;
+
+            alreadyHookedScrollEvents = true;
+            PostsDay.AddHandler(ListBox.ManipulationCompletedEvent, (EventHandler<ManipulationCompletedEventArgs>)LB_ManipulationCompleted, true);
+            sb = (ScrollBar)FindElementRecursive(PostsDay, typeof(ScrollBar));
+            sv = (ScrollViewer)FindElementRecursive(PostsDay, typeof(ScrollViewer));
+
+            if (sv != null)
+            {
+                // Visual States are always on the first child of the control template 
+                FrameworkElement element = VisualTreeHelper.GetChild(sv, 0) as FrameworkElement;
+                if (element != null)
+                {
+                    VisualStateGroup group = FindVisualState(element, "ScrollStates");
+                    if (group != null)
+                    {
+                        group.CurrentStateChanging += new EventHandler<VisualStateChangedEventArgs>(group_CurrentStateChanging);
+                    }
+                    VisualStateGroup vgroup = FindVisualState(element, "VerticalCompression");
+                    if (vgroup != null)
+                    {
+                        vgroup.CurrentStateChanging += new EventHandler<VisualStateChangedEventArgs>(vgroup_CurrentStateChanging);
+                    }
+                }
+            }
+        }
+
+        private void LB_ManipulationCompleted(object sender, ManipulationCompletedEventArgs e)
+        {
+        }
+
+        private void Item_Loaded(object sender, RoutedEventArgs e)
+        {
+            loadedForDay += 1;
+            if (PostsDay.Items.Count() == loadedForDay) {
+                lastForDay = sender as StackPanel;
+            }
+            /*if (sender as Post == PostsDay.Items.Last() as Post) {
+                lastForDay = sender as StackPanel;
+            }*/
+        }
+        
+        private void vgroup_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
+        {
+            /*if (e.NewState.Name == "CompressionTop")
+            {   
+            }*/
+
+            if (e.NewState.Name == "CompressionBottom")
+            {
+                //ListBoxItem a = PostsDay.Items.Last() as ListBoxItem;
+                UIElement pb = FindElementRecursive(lastForDay as FrameworkElement, typeof(ProgressBar));
+                pb.Visibility = Visibility.Visible;
+                PostsDay.UpdateLayout();
+                if (PPanorama.GetPosts(Period.Day) == 1){
+                    PostsDay.UpdateLayout();
+                    pb.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            /*if (e.NewState.Name == "NoVerticalCompression")
+            {
+            }*/
+        }
+
+        private void group_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
+        {
+            /*if (e.NewState.Name == "Scrolling")
+            {
+                MonthText.Text = "Scrolling!";
+            }
+            else
+            {
+                MonthText.Text = "Not Scrolling!";
+            }*/
+        }
+
+        private UIElement FindElementRecursive(FrameworkElement parent, Type targetType)
+        {
+            int childCount = VisualTreeHelper.GetChildrenCount(parent);
+            UIElement returnElement = null;
+            if (childCount > 0)
+            {
+                for (int i = 0; i < childCount; i++)
+                {
+                    Object element = VisualTreeHelper.GetChild(parent, i);
+                    if (element.GetType() == targetType)
+                    {
+                        return element as UIElement;
+                    }
+                    else
+                    {
+                        returnElement = FindElementRecursive(VisualTreeHelper.GetChild(parent, i) as FrameworkElement, targetType);
+                    }
+                }
+            }
+            return returnElement;
+        }
+
+        private UIElement FindParentRecursive(FrameworkElement child, Type targetType)
+        {
+            FrameworkElement parent = VisualTreeHelper.GetParent(child) as FrameworkElement;
+            UIElement parentElem = null;
+            if (parent.GetType() == targetType)
+                return parent as UIElement;
+            else
+                parentElem = FindParentRecursive(parent, targetType);
+            return parentElem;
+        }
+        
+        private VisualStateGroup FindVisualState(FrameworkElement element, string name)
+        {
+            if (element == null)
+                return null;
+
+            IList groups = VisualStateManager.GetVisualStateGroups(element);
+            foreach (VisualStateGroup group in groups)
+                if (group.Name == name)
+                    return group;
+
+            return null;
         }
     }
 }
