@@ -25,6 +25,18 @@ namespace fbtimes_test
 {
     public enum Period { Now, Day, Week, Month };
 
+    public delegate void GotPostsEventHandler( object sender, GotPostsEventArgs e );
+
+    public class GotPostsEventArgs : EventArgs {
+        public Period period { get; set; }
+        public uint len { get; set; }
+
+        public GotPostsEventArgs (Period period, uint len) : base() {
+            this.period = period;
+            this.len = len;
+        }
+    }
+
     [DataContract]
     public class Post
     {
@@ -81,118 +93,113 @@ namespace fbtimes_test
         }
     }
     
-    public abstract class AbstractPostsPanorama<T> {
-        public ObservableCollection<T> NowPosts;
-        public ObservableCollection<T> DayPosts;
-        public ObservableCollection<T> WeekPosts;
-        public ObservableCollection<T> MonthPosts;
-        public DataTemplate DTemplate;
+    public abstract class AbstractPostsData<T>
+    {
+        public event GotPostsEventHandler Changed;
 
-        public AbstractPostsPanorama() {
-            NowPosts = new ObservableCollection<T>();
-            DayPosts = new ObservableCollection<T>();
-            WeekPosts = new ObservableCollection<T>();
-            MonthPosts = new ObservableCollection<T>();
-            DTemplate = CreateDataTemplate();
+        public ObservableCollection<T>[] AllTabs;
+        public WebClient Client;
+        public uint Epoch;
+        public int PortionSize;
+        public string[] TabsTitles;
+  
+        public AbstractPostsData() {
+            AllTabs = new ObservableCollection<T>[4];
+            AllTabs[0] = new ObservableCollection<T>();
+            AllTabs[1] = new ObservableCollection<T>();
+            AllTabs[2] = new ObservableCollection<T>();
+            AllTabs[3] = new ObservableCollection<T>();
+            Client = new WebClient();
+            Client.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
+            Client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
+            Epoch = 1111;
+            PortionSize = 20;
+            TabsTitles = new string[4] { "now", "day", "week", "month" };
         }
 
-        protected void AppendPosts(Period period, ObservableCollection<T> NewPosts) {
-            ObservableCollection<T> WorkPosts = null;
-            switch (period) { 
-                case Period.Now:
-                    WorkPosts = NowPosts;
-                    break;
-                case Period.Day:
-                    WorkPosts = DayPosts;
-                    break;
-                case Period.Week:
-                    WorkPosts = WeekPosts;
-                    break;
-                case Period.Month:
-                    WorkPosts = MonthPosts;
-                    break;
-                default:
-                    WorkPosts = NowPosts;
-                    break;
-            }
-            foreach (T NewPost in NewPosts) {
-                WorkPosts.Add(NewPost);
-            }
-        }
-
-        public abstract DataTemplate CreateDataTemplate();
         public abstract int GetPosts(Period period);
+        public abstract void InitTabs(); // add additional tabs control
+
+        public virtual void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        {
+            if (e.Error == null)
+            {
+                Debug.WriteLine(e.Result);
+                string json = "[" +
+                                "{\"Comments\":10,\"Description\":\"Правила жизни Илая Уоллака. Есть множество историй, которые не выходят у меня из головы, но вот только я ни одной не помню\",\"ImgURL\":\"https://p.twimg.com/AnDpj9ECEAA4fLA.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Правила жизни Илая Уоллака\",\"LinkURL\":\"http://esquire.ru/\"}," +
+                                "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                                "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                                "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                                "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
+                                "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}" +
+                              "]";
+                Period ActiveTab = (Period)e.UserState;
+                MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(e.Result));
+                DataContractJsonSerializer ser = new DataContractJsonSerializer(AllTabs[(uint)Period.Now].GetType()); // NowPosts doesn't matter - just first from 4
+                ObservableCollection<T> NewPosts = ser.ReadObject(ms) as ObservableCollection<T>;
+                AppendPosts(ActiveTab, NewPosts);
+                OnChanged(new GotPostsEventArgs(ActiveTab, (uint)NewPosts.Count()));
+
+                //Type ObsCollection = typeof(ObservableCollection<>);
+                //Type PostObsCollection = ObsCollection.MakeGenericType(PData.NowPosts.GetType().GetGenericArguments()[0]);
+                /*PData.
+                Dispatcher.BeginInvoke(() => { MonthText.Text = e.Result; });*/
+            }
+            else
+            {
+                Debug.WriteLine(e.Error);
+            }
+        }
+
+        public void AppendPosts(Period period, ObservableCollection<T> NewPosts) {
+            ObservableCollection<T> WorkerPosts = AllTabs[(uint)period];
+            foreach (T NewPost in NewPosts) {
+                WorkerPosts.Add(NewPost);
+            }
+        }
+
+        public virtual void OnChanged(GotPostsEventArgs e) {
+            if (Changed != null)
+                Changed(this, e);
+        }
     }
 
-    public class PostsPanorama<T> : AbstractPostsPanorama<T> where T : Post, new() 
-    {    
-        public override DataTemplate CreateDataTemplate()
+    public class PostsData<T> : AbstractPostsData<T> where T : Post, new() 
+    {
+        public override void InitTabs()
         {
-            string xaml = @"
-                            <DataTemplate 
-                            xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation""
-                            xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
-                            xmlns:delay=""clr-namespace:Delay;assembly=PhonePerformance""
-                            >
-                            <Border BorderBrush=""Silver"" BorderThickness=""0,0,0,1"" Padding=""0,0,0,4"">
-                            <StackPanel>
-                                <HyperlinkButton Content=""{Binding Title}"" Style=""{StaticResource HyperlinkButtonWrappingStyle}"" TargetName=""_blank"" NavigateUri=""{Binding LinkURL}"" Margin=""10,10,0,0"" />
-                                <StackPanel Orientation=""Horizontal"" Margin=""0,5,0,0"" Width=""460"" Height=""125"">
-                                    <Image Width=""90"" Height=""110"" Stretch=""UniformToFill"" delay:LowProfileImageLoader.UriSource=""{Binding ImgURL}"" Margin=""10,0,0,0"" />
-                                    <StackPanel>
-                                        <TextBlock Text=""{Binding Website}"" TextWrapping=""Wrap"" Margin=""12,-2,12,0"" Style=""{StaticResource PhoneTextSmallStyle}""/>
-                                        <TextBlock Text=""{Binding Description}"" Width=""320"" TextWrapping=""Wrap"" Margin=""12,0,0,0"" Style=""{StaticResource PhoneTextSmallStyle}"" Foreground=""White""/>
-                                    </StackPanel>
-                                </StackPanel>
-                                <StackPanel Orientation=""Horizontal"">
-                                    <Image Source=""like.png"" Margin=""10,0,0,0"" />
-                                    <TextBlock Text=""{Binding Likes}"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                    <Image Source=""comment.png"" Margin=""7,0,0,0"" />
-                                    <TextBlock Text=""{Binding Comments}"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                    <Image Source=""share.png"" Margin=""7,0,0,0"" />
-                                    <TextBlock Text=""{Binding Shares}"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                    <Image Source=""share_page.png"" Margin=""7,0,0,0"" />
-                                    <TextBlock Text=""{Binding PageShares}"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                    <TextBlock Text=""·"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                    <TextBlock Text=""5ч назад"" Style=""{StaticResource PhoneTextSmallStyle}"" Margin=""5,0,0,0"" />
-                                </StackPanel>
-                            </StackPanel>
-                            </Border>
-                        </DataTemplate>";
-            DataTemplate dt = (DataTemplate)XamlReader.Load(xaml);
-            return dt;
+            GetPosts(Period.Now);
+            //GetPosts(Period.Day);
         }
 
         public override int GetPosts(Period period)
         {
-            string json = "[" +
-                            "{\"Comments\":10,\"Description\":\"Правила жизни Илая Уоллака. Есть множество историй, которые не выходят у меня из головы, но вот только я ни одной не помню\",\"ImgURL\":\"https://p.twimg.com/AnDpj9ECEAA4fLA.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Правила жизни Илая Уоллака\",\"LinkURL\":\"http://esquire.ru/\"}," +
-                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
-                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
-                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
-                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
-                            "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}" +
-                          "]";
-            MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
-            DataContractJsonSerializer ser = new DataContractJsonSerializer(DayPosts.GetType());
-            ObservableCollection<T> NewPosts = ser.ReadObject(ms) as ObservableCollection<T>;
-            bool a;
-            for (long i = 0; i < 1000000; i++)
-                a = false;
-            AppendPosts(period, NewPosts);
+            try {
+                string EpochStr = Convert.ToString(Epoch);
+                int From = AllTabs[(uint)period].Count();
+                string FromStr = Convert.ToString(From);
+                string ToStr = Convert.ToString(From + PortionSize);
+                string TimeShift = TabsTitles[(uint)period];
+                string uri = "http://theftimes.com/next_posts?epoch=" + EpochStr + "&from=" + FromStr + "&to=" + ToStr + "&time_shift=" + TimeShift + "&format=json&view_mode=po";
+                Client.DownloadStringAsync(new Uri(uri), period);
+            }
+            catch (Exception) {
+                Client.CancelAsync();
+            }
             return 1;
         }
-        
     }
 
     public partial class MainPage : PhoneApplicationPage
     {
-        private PostsPanorama<Post> PPanorama = new PostsPanorama<Post>();
-        private ScrollBar sb = null;
-        private ScrollViewer sv = null;
-        private bool alreadyHookedScrollEvents = false;
-        StackPanel lastForDay = new StackPanel();
-        uint loadedForDay = 0;
+        protected StackPanel[] lastPosts = new StackPanel[4];
+        protected uint[] appendedPosts = new uint[4] { 0, 0, 0, 0 };
+        protected uint[] loadedPosts = new uint[4] { 0, 0, 0, 0 };
+        
+        protected PostsData<Post> PData = new PostsData<Post>();
+        protected ScrollBar sb = null;
+        protected ScrollViewer sv = null;
+        protected bool alreadyHookedScrollEvents = false;
 
         // Constructor
         public MainPage()
@@ -203,63 +210,18 @@ namespace fbtimes_test
             DataContext = App.ViewModel;
             this.Loaded += new RoutedEventHandler(MainPage_Loaded);
 
-            ObservableCollection<Post> DayPosts = new ObservableCollection<Post>();
+            PData.Changed += new GotPostsEventHandler(PData_Changed);
 
-            ProgressBar loadProgressBar = new ProgressBar();
-            loadProgressBar.IsIndeterminate = true;
-            loadProgressBar.Style = (Style)Application.Current.Resources["CustomIndeterminateProgressBar"];
-
-            if (PPanorama.GetPosts(Period.Day) == 1) {
-                //PostsDay.ItemTemplate = PPanorama.DTemplate;
-                PostsDay.ItemsSource = PPanorama.DayPosts;
-                /*
-                PostsDay.Height = 2500;
-                PostsDay.UpdateLayout();
-                PostsDay.LayoutUpdated += new EventHandler(PostsDay_LayoutUpdated);*/
-                //PostsDay.ScrollIntoView = 
-            }
-
-            WebClient client = new WebClient();
-            client.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
-            client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
-            try
-            {
-                client.DownloadStringAsync(new Uri("http://www.theftimes.com/"));
-            }
-            catch (Exception) {
-                client.CancelAsync();
-            }
+            PData.InitTabs();
+            PostsNow.ItemsSource = PData.AllTabs[(uint)Period.Now];
+            PostsDay.ItemsSource = PData.AllTabs[(uint)Period.Day];
         }
 
-        private void PostsDay_LayoutUpdated(object sender, EventArgs e) {
-            ListBox a = sender as ListBox;
-        }
-
-        private void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e) {
-            if (e.Error == null){
-                Debug.WriteLine(e.Result);
-                Dispatcher.BeginInvoke(() => { MonthText.Text = e.Result; });
-            }
-            else {
-                Debug.WriteLine(e.Error);
-            }
-        }
-
-        // Load data for the ViewModel Items
-        private void MainPage_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (!App.ViewModel.IsDataLoaded)
-            {
-                App.ViewModel.LoadData();
-            }
-
-            if (alreadyHookedScrollEvents)
-                return;
-
-            alreadyHookedScrollEvents = true;
-            PostsDay.AddHandler(ListBox.ManipulationCompletedEvent, (EventHandler<ManipulationCompletedEventArgs>)LB_ManipulationCompleted, true);
-            sb = (ScrollBar)FindElementRecursive(PostsDay, typeof(ScrollBar));
-            sv = (ScrollViewer)FindElementRecursive(PostsDay, typeof(ScrollViewer));
+        protected void HookScrollEventsTo(ListBox Lb) {
+            
+            Lb.AddHandler(ListBox.ManipulationCompletedEvent, (EventHandler<ManipulationCompletedEventArgs>)LB_ManipulationCompleted, true);
+            sb = (ScrollBar)FindElementRecursive(Lb, typeof(ScrollBar));
+            sv = (ScrollViewer)FindElementRecursive(Lb, typeof(ScrollViewer));
 
             if (sv != null)
             {
@@ -281,19 +243,73 @@ namespace fbtimes_test
             }
         }
 
+        private void Panorama_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            Panorama p = sender as Panorama;
+        }
+
+        private void PostsDay_LayoutUpdated(object sender, EventArgs e) {
+            ListBox a = sender as ListBox;
+        }
+
+        // Load data for the ViewModel Items
+        protected void MainPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!App.ViewModel.IsDataLoaded)
+            {
+                App.ViewModel.LoadData();
+            }
+
+            if (alreadyHookedScrollEvents)
+                return;
+
+            alreadyHookedScrollEvents = true;
+            HookScrollEventsTo(PostsNow);
+            HookScrollEventsTo(PostsDay);
+            //HookScrollEventsTo(PostsWeek);
+            //HookScrollEventsTo(PostsMonth);
+        }
+
+        void PData_Changed(object sender, GotPostsEventArgs e)
+        {
+            appendedPosts[(int)e.period] += e.len;
+            if (lastPosts[(int)e.period] != null)
+            {
+                UIElement pb = FindElementRecursive(lastPosts[(int)e.period] as FrameworkElement, typeof(ProgressBar));
+                pb.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private void LB_ManipulationCompleted(object sender, ManipulationCompletedEventArgs e)
         {
         }
 
-        private void Item_Loaded(object sender, RoutedEventArgs e)
+        protected void Item_Loaded(object sender, RoutedEventArgs e)
         {
-            loadedForDay += 1;
-            if (PostsDay.Items.Count() == loadedForDay) {
-                lastForDay = sender as StackPanel;
+            Period period;
+            ListBox WorkListBox = null;
+            PanoramaItem pi = FindParentRecursive(sender as FrameworkElement, typeof(PanoramaItem)) as PanoramaItem;
+
+            if (pi == Day){
+                period = Period.Day;
+                WorkListBox = PostsDay;
             }
-            /*if (sender as Post == PostsDay.Items.Last() as Post) {
-                lastForDay = sender as StackPanel;
-            }*/
+            else if (pi == Week) {
+                period = Period.Week;
+            }
+            else if (pi == Month)
+            {
+                period = Period.Month;
+            }
+            else{
+                period = Period.Now;
+                WorkListBox = PostsNow;
+            }
+
+            loadedPosts[(int)period] += 1;
+            if (WorkListBox.Items.Count() == loadedPosts[(int)period])
+            {
+                lastPosts[(int)period] = sender as StackPanel;
+            }
         }
         
         private void vgroup_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
@@ -302,16 +318,40 @@ namespace fbtimes_test
             {   
             }*/
 
+            Period period;
+            ListBox WorkListBox = null;
+            PanoramaItem pi = FindParentRecursive(sender as FrameworkElement, typeof(PanoramaItem)) as PanoramaItem;
+
+            if (pi == Day)
+            {
+                period = Period.Day;
+                WorkListBox = PostsDay;
+            }
+            else if (pi == Week)
+            {
+                period = Period.Week;
+            }
+            else if (pi == Month)
+            {
+                period = Period.Month;
+            }
+            else
+            {
+                period = Period.Now;
+                WorkListBox = PostsNow;
+            }
+
             if (e.NewState.Name == "CompressionBottom")
             {
-                //ListBoxItem a = PostsDay.Items.Last() as ListBoxItem;
-                UIElement pb = FindElementRecursive(lastForDay as FrameworkElement, typeof(ProgressBar));
+                UIElement pb = FindElementRecursive(lastPosts[(int)period] as FrameworkElement, typeof(ProgressBar));
                 pb.Visibility = Visibility.Visible;
-                PostsDay.UpdateLayout();
-                if (PPanorama.GetPosts(Period.Day) == 1){
-                    PostsDay.UpdateLayout();
-                    pb.Visibility = Visibility.Collapsed;
-                }
+                Thread.Sleep(1500);
+                PData.GetPosts(period);
+                //PostsDay.UpdateLayout();
+                //if (PData.GetPosts(Period.Day) == 1){
+                //    PostsDay.UpdateLayout();
+                //    pb.Visibility = Visibility.Collapsed;
+                //}
             }
 
             /*if (e.NewState.Name == "NoVerticalCompression")
