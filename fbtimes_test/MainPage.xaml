@@ -163,43 +163,104 @@
                 </ListBox>
             </controls:PanoramaItem>
 
-            <controls:PanoramaItem x:Name="Week" Header="неделя">
-                <ProgressBar 
-                    IsIndeterminate="true"
-                    x:Name="customIndeterminateProgressBar"
-                    Style="{StaticResource CustomIndeterminateProgressBar}"
-                    Width="150"
-                />
-            </controls:PanoramaItem>
-
-            <controls:PanoramaItem x:Name="Month" Header="месяц">
-                <!--Double line list with text wrapping-->
-                <StackPanel x:Name="MonthPanel">
-                    <Image Width="150" Height="100" x:Name="World" delay:LowProfileImageLoader.UriSource="https://atmireq.com/labs17/bitstream/handle/123456789/7618/earth-map-huge.jpg?sequence=1">
-                    </Image>
-                    <TextBlock x:Name="MonthText" Text="Hello!" />
-                </StackPanel>
-            </controls:PanoramaItem>
-
-            <!--Panorama item two-->
-            <!--Use 'Orientation="Horizontal"' to enable a panel that lays out horizontally-->
-            <controls:PanoramaItem Header="за день">
-                <!--Double line list with image placeholder and text wrapping-->
-                <ListBox Margin="0,0,-12,0" ItemsSource="{Binding Items}">
+            <controls:PanoramaItem x:Name="Week" Header="неделя" Margin="0,-35,0,0">
+                <ListBox x:Name="PostsWeek">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,17">
-                                <!--Replace rectangle with image-->
-                                <Rectangle Height="100" Width="100" Fill="#FFE5001b" Margin="12,0,9,0"/>
-                                <StackPanel Width="311">                                    
-                                    <TextBlock Text="{Binding LineOne}" TextWrapping="Wrap" Style="{StaticResource PhoneTextExtraLargeStyle}"/>
-                                    <TextBlock Text="{Binding LineTwo}" TextWrapping="Wrap" Margin="12,-6,12,0" Style="{StaticResource PhoneTextSubtleStyle}"/>
-                                </StackPanel>
+                            <StackPanel Orientation="Vertical" Loaded="Item_Loaded">
+                                <Border BorderBrush="Silver" BorderThickness="0,0,0,1" Padding="0,0,0,4">
+                                    <StackPanel>
+                                        <HyperlinkButton Content="{Binding Title}" Style="{StaticResource HyperlinkButtonWrappingStyle}" TargetName="_blank" NavigateUri="{Binding LinkURL}" Margin="10,10,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Width="460" Height="125">
+                                            <Image Width="90" Height="110" Stretch="UniformToFill" Margin="10,0,0,0" Visibility="Visible" ImageFailed="postimage_Failed">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding ImgURL}" CreateOptions="BackgroundCreation" />
+                                                </Image.Source>
+                                            </Image>
+                                            <StackPanel>
+                                                <TextBlock Name="Website" Text="{Binding Website}" TextWrapping="Wrap" Margin="12,-2,12,0" Style="{StaticResource PhoneTextSmallStyle}" />
+                                                <TextBlock Name="Desc" Text="{Binding Description}" Width="320" TextWrapping="Wrap" Margin="12,0,0,0" Style="{StaticResource PhoneTextSmallStyle}" Foreground="White" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Likes, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="like.png" Margin="10,0,0,0" />
+                                                <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Comments, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="comment.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Shares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding PageShares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share_page.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <TextBlock Text="·" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            <TextBlock Text="5ч назад" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <ProgressBar Visibility="Collapsed" Height="150" IsIndeterminate="true" x:Name="CustomIndeterminateProgressBar" Style="{StaticResource CustomIndeterminateProgressBar}" Margin="0,10,0,0" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </controls:PanoramaItem>
+
+            <controls:PanoramaItem x:Name="Month" Header="месяц" Margin="0,-35,0,0">
+                <ListBox x:Name="PostsMonth">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Vertical" Loaded="Item_Loaded">
+                                <Border BorderBrush="Silver" BorderThickness="0,0,0,1" Padding="0,0,0,4">
+                                    <StackPanel>
+                                        <HyperlinkButton Content="{Binding Title}" Style="{StaticResource HyperlinkButtonWrappingStyle}" TargetName="_blank" NavigateUri="{Binding LinkURL}" Margin="10,10,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Width="460" Height="125">
+                                            <Image Width="90" Height="110" Stretch="UniformToFill" Margin="10,0,0,0" Visibility="Visible" ImageFailed="postimage_Failed">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding ImgURL}" CreateOptions="BackgroundCreation" />
+                                                </Image.Source>
+                                            </Image>
+                                            <StackPanel>
+                                                <TextBlock Name="Website" Text="{Binding Website}" TextWrapping="Wrap" Margin="12,-2,12,0" Style="{StaticResource PhoneTextSmallStyle}" />
+                                                <TextBlock Name="Desc" Text="{Binding Description}" Width="320" TextWrapping="Wrap" Margin="12,0,0,0" Style="{StaticResource PhoneTextSmallStyle}" Foreground="White" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Likes, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="like.png" Margin="10,0,0,0" />
+                                                <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Comments, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="comment.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Shares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding PageShares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share_page.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <TextBlock Text="·" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            <TextBlock Text="5ч назад" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <ProgressBar Visibility="Collapsed" Height="150" IsIndeterminate="true" x:Name="CustomIndeterminateProgressBar" Style="{StaticResource CustomIndeterminateProgressBar}" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </controls:PanoramaItem>
+            
+            
+            
         </controls:Panorama>
     </Grid>
 

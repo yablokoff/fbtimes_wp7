@@ -32,7 +32,7 @@ namespace fbtimes_test
             if (value == null)
                 return Visibility.Collapsed;
 
-            var count = (UInt16)value;
+            var count = (UInt32)value;
 
             return (count > 0) ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -65,8 +65,7 @@ namespace fbtimes_test
         [DataMember]
         public string Title { get; set; }
         public string Website {get; set; }
-        protected string linkURL;
-        protected UInt16 likes;
+        protected string linkURL;        
         [DataMember]
         public string LinkURL {
             get 
@@ -92,13 +91,13 @@ namespace fbtimes_test
         [DataMember]
         public string ImgURL { get; set; }
         [DataMember]
-        public UInt16 Likes { get; set; }
+        public UInt32 Likes { get; set; }
         [DataMember]
-        public UInt16 Comments { get; set; }
+        public UInt32 Comments { get; set; }
         [DataMember]
-        public UInt16 Shares { get; set; }
+        public UInt32 Shares { get; set; }
         [DataMember]
-        public UInt16 PageShares { get; set; }
+        public UInt32 PageShares { get; set; }
         [DataMember]
         public UInt32 TimeShift { get; set; }
         
@@ -130,15 +129,17 @@ namespace fbtimes_test
         public string[] TabsTitles;
   
         public AbstractPostsData() {
+            // Place to store all posts.
             AllTabs = new ObservableCollection<T>[4];
             AllTabs[0] = new ObservableCollection<T>();
             AllTabs[1] = new ObservableCollection<T>();
             AllTabs[2] = new ObservableCollection<T>();
             AllTabs[3] = new ObservableCollection<T>();
+            // Posts getter.
             Client = new WebClient();
             Client.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
             Client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
-            Epoch = 1292;
+            Epoch = 1292; // suppose default epoch here
             PortionSize = 15;
             TabsTitles = new string[4] { "now", "day", "week", "month" };
         }
@@ -146,7 +147,10 @@ namespace fbtimes_test
         public abstract int GetPosts(Period period);
 
         public virtual void InitTabs() {
-            // add additional tabs control            
+            //
+            // TODO: maybe add additional tabs control
+            //
+            // Current epoch getter.
             WebClient epochGetter = new WebClient();
             epochGetter.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
             epochGetter.DownloadStringCompleted += new DownloadStringCompletedEventHandler(epochGetter_DownloadStringCompleted);
@@ -166,7 +170,7 @@ namespace fbtimes_test
                                 "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}," +
                                 "{\"Comments\":10,\"Description\":\"Генерал Шарль де Голль вернулся к власти в 1958 году, когда IV республика пала, не сумев разобраться с войной в Алжире. Он разобрался, хотя проблемы Франции\",\"ImgURL\":\"http://a7.sphotos.ak.fbcdn.net/hphotos-ak-ash4/420977_383281481684718_100000086086040_1659203_1659002380_n.jpg\",\"Likes\":10,\"PageShares\":10,\"Shares\":10,\"Title\":\"Должно быть иначе\",\"LinkURL\":\"http://kommersant.ru/\"}" +
                               "]";
-                Period ActiveTab = (Period)e.UserState;
+                Period ActiveTab = (Period)e.UserState; // Panorama Page from which request has come.
                 MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(e.Result));
                 DataContractJsonSerializer ser = new DataContractJsonSerializer(AllTabs[(uint)Period.Now].GetType()); // NowPosts doesn't matter - just first from 4
                 ObservableCollection<T> NewPosts = ser.ReadObject(ms) as ObservableCollection<T>;
@@ -180,6 +184,9 @@ namespace fbtimes_test
         }
 
         public virtual void epochGetter_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e) {
+            //
+            // Handler for current epoch getter.
+            //
             if (e.Error == null) {
                 Debug.WriteLine(e.Result);
                 string epoch = e.Result;
@@ -200,11 +207,19 @@ namespace fbtimes_test
         }
 
         public virtual void OnChanged(GotPostsEventArgs e) {
+            //
+            // Event to invoke after posts' portion downloaded 
+            // and appended to AllTabs.
+            //
             if (Changed != null)
                 Changed(this, e);
         }
 
         public virtual void OnRequested(GotPostsEventArgs e) {
+            //
+            // Event to invoke after posts' portion downloaded 
+            // and appended to AllTabs.
+            //
             if (Requested != null)
                 Requested(this, e);
         }
@@ -213,6 +228,10 @@ namespace fbtimes_test
     public class PostsData<T> : AbstractPostsData<T> where T : Post, new() 
     {
         public override int GetPosts(Period period)
+        //
+        // Download new posts portion for certain period,
+        // and emit OnRequested event.
+        //
         {
             try {
                 string EpochStr = Convert.ToString(Epoch);
@@ -244,13 +263,10 @@ namespace fbtimes_test
         protected ScrollViewer sv = null;
         protected bool alreadyHookedScrollEvents = false;
 
-        // Constructor
         public MainPage()
         {
             InitializeComponent();
 
-            // Set the data context of the listbox control to the sample data
-            DataContext = App.ViewModel;
             this.Loaded += new RoutedEventHandler(MainPage_Loaded);
 
             PData.Changed += new GotPostsEventHandler(PData_Changed);
@@ -260,6 +276,8 @@ namespace fbtimes_test
 
             PostsNow.ItemsSource = PData.AllTabs[(uint)Period.Now];
             PostsDay.ItemsSource = PData.AllTabs[(uint)Period.Day];
+            PostsWeek.ItemsSource = PData.AllTabs[(uint)Period.Week];
+            PostsMonth.ItemsSource = PData.AllTabs[(uint)Period.Month];
         }
 
         protected void HookScrollEventsTo(ListBox Lb) {
@@ -290,6 +308,9 @@ namespace fbtimes_test
 
         private void Panorama_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             Panorama p = sender as Panorama;
+            //
+            // Initial fill for Panorama pages that was opened firstly.
+            //
             if (loadedPosts[p.SelectedIndex] == 0 && !busyJSONLoader[0] && !busyJSONLoader[1] && !busyJSONLoader[2] && !busyJSONLoader[3])
                 PData.GetPosts((Period)p.SelectedIndex);
         }
@@ -298,22 +319,16 @@ namespace fbtimes_test
             ListBox a = sender as ListBox;
         }
 
-        // Load data for the ViewModel Items
         protected void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!App.ViewModel.IsDataLoaded)
-            {
-                App.ViewModel.LoadData();
-            }
-
+            // Hook scroll events here.
             if (alreadyHookedScrollEvents)
                 return;
-
             alreadyHookedScrollEvents = true;
             HookScrollEventsTo(PostsNow);
             HookScrollEventsTo(PostsDay);
-            //HookScrollEventsTo(PostsWeek);
-            //HookScrollEventsTo(PostsMonth);
+            HookScrollEventsTo(PostsWeek);
+            HookScrollEventsTo(PostsMonth);
         }
 
         public void PData_Changed(object sender, GotPostsEventArgs e)
@@ -328,6 +343,9 @@ namespace fbtimes_test
         }
 
         public void PData_Requested(object sender, GotPostsEventArgs e) {
+            //
+            // Set JSONLoader busy for special period - after Async call was just made.
+            //
             busyJSONLoader[(int)e.period] = true;
         }
 
@@ -356,10 +374,12 @@ namespace fbtimes_test
             }
             else if (pi == Week) {
                 period = Period.Week;
+                WorkListBox = PostsWeek;
             }
             else if (pi == Month)
             {
                 period = Period.Month;
+                WorkListBox = PostsMonth;
             }
             else{
                 period = Period.Now;
