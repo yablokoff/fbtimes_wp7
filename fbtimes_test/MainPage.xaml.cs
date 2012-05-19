@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Diagnostics;
@@ -12,6 +13,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -23,6 +25,26 @@ using Microsoft.Phone.Controls;
 
 namespace fbtimes_test
 {
+    public class IntToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null)
+                return Visibility.Collapsed;
+
+            var count = (UInt16)value;
+
+            return (count > 0) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var visiblity = (Visibility)value;
+
+            return (visiblity == Visibility.Visible) ? 1 : 0;
+        }
+    }
+
     public enum Period { Now, Day, Week, Month };
 
     public delegate void GotPostsEventHandler( object sender, GotPostsEventArgs e );
@@ -31,7 +53,7 @@ namespace fbtimes_test
         public Period period { get; set; }
         public uint len { get; set; }
 
-        public GotPostsEventArgs (Period period, uint len) : base() {
+        public GotPostsEventArgs (Period period, uint len = 0) : base() {
             this.period = period;
             this.len = len;
         }
@@ -44,6 +66,7 @@ namespace fbtimes_test
         public string Title { get; set; }
         public string Website {get; set; }
         protected string linkURL;
+        protected UInt16 likes;
         [DataMember]
         public string LinkURL {
             get 
@@ -76,6 +99,8 @@ namespace fbtimes_test
         public UInt16 Shares { get; set; }
         [DataMember]
         public UInt16 PageShares { get; set; }
+        [DataMember]
+        public UInt32 TimeShift { get; set; }
         
         public Post() { }
 
@@ -96,6 +121,7 @@ namespace fbtimes_test
     public abstract class AbstractPostsData<T>
     {
         public event GotPostsEventHandler Changed;
+        public event GotPostsEventHandler Requested;
 
         public ObservableCollection<T>[] AllTabs;
         public WebClient Client;
@@ -112,13 +138,20 @@ namespace fbtimes_test
             Client = new WebClient();
             Client.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
             Client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(client_DownloadStringCompleted);
-            Epoch = 1111;
-            PortionSize = 20;
+            Epoch = 1292;
+            PortionSize = 15;
             TabsTitles = new string[4] { "now", "day", "week", "month" };
         }
 
         public abstract int GetPosts(Period period);
-        public abstract void InitTabs(); // add additional tabs control
+
+        public virtual void InitTabs() {
+            // add additional tabs control            
+            WebClient epochGetter = new WebClient();
+            epochGetter.Headers["User-Agent"] = "Opera/9.80 (Windows NT 5.1; U; ru) Presto/2.5.24 Version/10.53";
+            epochGetter.DownloadStringCompleted += new DownloadStringCompletedEventHandler(epochGetter_DownloadStringCompleted);
+            epochGetter.DownloadStringAsync(new Uri("http://theftimes.com/get_current_epoch"));
+        }
 
         public virtual void client_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
         {
@@ -139,11 +172,19 @@ namespace fbtimes_test
                 ObservableCollection<T> NewPosts = ser.ReadObject(ms) as ObservableCollection<T>;
                 AppendPosts(ActiveTab, NewPosts);
                 OnChanged(new GotPostsEventArgs(ActiveTab, (uint)NewPosts.Count()));
+            }
+            else
+            {
+                Debug.WriteLine(e.Error);
+            }
+        }
 
-                //Type ObsCollection = typeof(ObservableCollection<>);
-                //Type PostObsCollection = ObsCollection.MakeGenericType(PData.NowPosts.GetType().GetGenericArguments()[0]);
-                /*PData.
-                Dispatcher.BeginInvoke(() => { MonthText.Text = e.Result; });*/
+        public virtual void epochGetter_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e) {
+            if (e.Error == null) {
+                Debug.WriteLine(e.Result);
+                string epoch = e.Result;
+                this.Epoch = Convert.ToUInt32(epoch);
+                GetPosts(Period.Now);
             }
             else
             {
@@ -162,16 +203,15 @@ namespace fbtimes_test
             if (Changed != null)
                 Changed(this, e);
         }
+
+        public virtual void OnRequested(GotPostsEventArgs e) {
+            if (Requested != null)
+                Requested(this, e);
+        }
     }
 
     public class PostsData<T> : AbstractPostsData<T> where T : Post, new() 
     {
-        public override void InitTabs()
-        {
-            GetPosts(Period.Now);
-            //GetPosts(Period.Day);
-        }
-
         public override int GetPosts(Period period)
         {
             try {
@@ -186,6 +226,7 @@ namespace fbtimes_test
             catch (Exception) {
                 Client.CancelAsync();
             }
+            OnRequested(new GotPostsEventArgs(period));
             return 1;
         }
     }
@@ -195,7 +236,9 @@ namespace fbtimes_test
         protected StackPanel[] lastPosts = new StackPanel[4];
         protected uint[] appendedPosts = new uint[4] { 0, 0, 0, 0 };
         protected uint[] loadedPosts = new uint[4] { 0, 0, 0, 0 };
-        
+        protected bool[] busyPicsLoader = new bool[4] { true, true, true, true }; // become available after initial GetPosts
+        protected bool[] busyJSONLoader = new bool[4] { false, false, false, false };
+
         protected PostsData<Post> PData = new PostsData<Post>();
         protected ScrollBar sb = null;
         protected ScrollViewer sv = null;
@@ -211,8 +254,10 @@ namespace fbtimes_test
             this.Loaded += new RoutedEventHandler(MainPage_Loaded);
 
             PData.Changed += new GotPostsEventHandler(PData_Changed);
+            PData.Requested += new GotPostsEventHandler(PData_Requested);
 
             PData.InitTabs();
+
             PostsNow.ItemsSource = PData.AllTabs[(uint)Period.Now];
             PostsDay.ItemsSource = PData.AllTabs[(uint)Period.Day];
         }
@@ -245,6 +290,8 @@ namespace fbtimes_test
 
         private void Panorama_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             Panorama p = sender as Panorama;
+            if (loadedPosts[p.SelectedIndex] == 0 && !busyJSONLoader[0] && !busyJSONLoader[1] && !busyJSONLoader[2] && !busyJSONLoader[3])
+                PData.GetPosts((Period)p.SelectedIndex);
         }
 
         private void PostsDay_LayoutUpdated(object sender, EventArgs e) {
@@ -269,8 +316,9 @@ namespace fbtimes_test
             //HookScrollEventsTo(PostsMonth);
         }
 
-        void PData_Changed(object sender, GotPostsEventArgs e)
+        public void PData_Changed(object sender, GotPostsEventArgs e)
         {
+            busyJSONLoader[(int)e.period] = false;
             appendedPosts[(int)e.period] += e.len;
             if (lastPosts[(int)e.period] != null)
             {
@@ -279,8 +327,21 @@ namespace fbtimes_test
             }
         }
 
+        public void PData_Requested(object sender, GotPostsEventArgs e) {
+            busyJSONLoader[(int)e.period] = true;
+        }
+
         private void LB_ManipulationCompleted(object sender, ManipulationCompletedEventArgs e)
         {
+        }
+
+        protected void postimage_Failed(object sender, ExceptionRoutedEventArgs e)
+        {
+            UIElement parent = FindParentRecursive(sender as FrameworkElement, typeof(StackPanel));
+            UIElement element = sender as UIElement;
+            element.Visibility = Visibility.Collapsed;
+            TextBlock text = FindElementRecursive(parent as FrameworkElement, typeof(TextBlock), 2) as TextBlock;
+            text.Width = 420;
         }
 
         protected void Item_Loaded(object sender, RoutedEventArgs e)
@@ -309,14 +370,13 @@ namespace fbtimes_test
             if (WorkListBox.Items.Count() == loadedPosts[(int)period])
             {
                 lastPosts[(int)period] = sender as StackPanel;
+                busyPicsLoader[(int)period] = false;
             }
         }
         
         private void vgroup_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
         {
-            /*if (e.NewState.Name == "CompressionTop")
-            {   
-            }*/
+            // possible states: "CompressionTop", "NoVerticalCompression"
 
             Period period;
             ListBox WorkListBox = null;
@@ -341,40 +401,28 @@ namespace fbtimes_test
                 WorkListBox = PostsNow;
             }
 
-            if (e.NewState.Name == "CompressionBottom")
+            if (!busyPicsLoader[(int)period])
             {
-                UIElement pb = FindElementRecursive(lastPosts[(int)period] as FrameworkElement, typeof(ProgressBar));
-                pb.Visibility = Visibility.Visible;
-                Thread.Sleep(1500);
-                PData.GetPosts(period);
-                //PostsDay.UpdateLayout();
-                //if (PData.GetPosts(Period.Day) == 1){
-                //    PostsDay.UpdateLayout();
-                //    pb.Visibility = Visibility.Collapsed;
-                //}
+                if (e.NewState.Name == "CompressionBottom")
+                {
+                    UIElement pb = FindElementRecursive(lastPosts[(int)period] as FrameworkElement, typeof(ProgressBar));
+                    pb.Visibility = Visibility.Visible;
+                    busyPicsLoader[(int)period] = true;
+                    PData.GetPosts(period);
+                }
             }
-
-            /*if (e.NewState.Name == "NoVerticalCompression")
-            {
-            }*/
         }
 
         private void group_CurrentStateChanging(object sender, VisualStateChangedEventArgs e)
         {
-            /*if (e.NewState.Name == "Scrolling")
-            {
-                MonthText.Text = "Scrolling!";
-            }
-            else
-            {
-                MonthText.Text = "Not Scrolling!";
-            }*/
+            // possible states: e.NewState.Name == "Scrolling"; "NotScrolling"
         }
 
-        private UIElement FindElementRecursive(FrameworkElement parent, Type targetType)
+        private UIElement FindElementRecursive(FrameworkElement parent, Type targetType, uint orderNumber = 1)
         {
             int childCount = VisualTreeHelper.GetChildrenCount(parent);
             UIElement returnElement = null;
+            uint number = 0;
             if (childCount > 0)
             {
                 for (int i = 0; i < childCount; i++)
@@ -382,11 +430,14 @@ namespace fbtimes_test
                     Object element = VisualTreeHelper.GetChild(parent, i);
                     if (element.GetType() == targetType)
                     {
-                        return element as UIElement;
+                        number += 1;
+                        if (number == orderNumber)
+                            return element as UIElement;
+                        continue;
                     }
                     else
                     {
-                        returnElement = FindElementRecursive(VisualTreeHelper.GetChild(parent, i) as FrameworkElement, targetType);
+                        returnElement = FindElementRecursive(VisualTreeHelper.GetChild(parent, i) as FrameworkElement, targetType, orderNumber);
                     }
                 }
             }

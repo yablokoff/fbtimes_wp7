@@ -8,6 +8,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:delay="clr-namespace:Delay;assembly=PhonePerformance"
+    xmlns:app="clr-namespace:fbtimes_test"
     mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="728" 
     d:DataContext="{d:DesignData SampleData/MainViewModelSampleData.xaml}"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
@@ -63,14 +64,9 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!--<Storyboard x:Name="AnimateTextSB" Completed="AnimateTextSB_Completed">
-            <DoubleAnimation x:Name="FontAnimation" From="30" To="50" Duration="0:0:0.9" Storyboard.TargetProperty="(TextBlock.FontSize)"/>
-            <ColorAnimation x:Name="FontColorAnimation" From="White" To="Green" Duration="0:0:0.9" Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"/>
-        </Storyboard>
-        <Storyboard x:Name="AnimateSqueezeTextSB">
-            <DoubleAnimation x:Name="FontAnimationSqueeze" From="30" To="50" Duration="0:0:0.9" Storyboard.TargetProperty="(TextBlock.FontSize)" AutoReverse="True"/>
-            <ColorAnimation x:Name="FontColorAnimationSqueeze" From="White" To="Green" Duration="0:0:0.9" Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"/>
-        </Storyboard>-->
+        
+        <app:IntToVisibilityConverter x:Key="IntToVisibility" />
+
     </phone:PhoneApplicationPage.Resources>
 
     <!--LayoutRoot is the root grid where all page content is placed-->
@@ -87,8 +83,12 @@
                                 <Border BorderBrush="Silver" BorderThickness="0,0,0,1" Padding="0,0,0,4">
                                     <StackPanel>
                                         <HyperlinkButton Content="{Binding Title}" Style="{StaticResource HyperlinkButtonWrappingStyle}" TargetName="_blank" NavigateUri="{Binding LinkURL}" Margin="10,10,0,0" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Width="460" Height="125">
-                                            <Image Width="90" Height="110" Stretch="UniformToFill" delay:LowProfileImageLoader.UriSource="{Binding ImgURL}" Margin="10,0,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Width="440" Height="125">
+                                            <Image Width="90" Height="110" Stretch="UniformToFill" Margin="10,0,0,0">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding ImgURL}" CreateOptions="BackgroundCreation" />
+                                                </Image.Source>
+                                            </Image>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Website}" TextWrapping="Wrap" Margin="12,-2,12,0" Style="{StaticResource PhoneTextSmallStyle}" />
                                                 <TextBlock Text="{Binding Description}" Width="320" TextWrapping="Wrap" Margin="12,0,0,0" Style="{StaticResource PhoneTextSmallStyle}" Foreground="White" />
@@ -124,27 +124,39 @@
                                     <StackPanel>
                                         <HyperlinkButton Content="{Binding Title}" Style="{StaticResource HyperlinkButtonWrappingStyle}" TargetName="_blank" NavigateUri="{Binding LinkURL}" Margin="10,10,0,0" />
                                         <StackPanel Orientation="Horizontal" Margin="0,5,0,0" Width="460" Height="125">
-                                            <Image Width="90" Height="110" Stretch="UniformToFill" delay:LowProfileImageLoader.UriSource="{Binding ImgURL}" Margin="10,0,0,0" />
+                                            <Image Width="90" Height="110" Stretch="UniformToFill" Margin="10,0,0,0" Visibility="Visible" ImageFailed="postimage_Failed">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding ImgURL}" CreateOptions="BackgroundCreation" />
+                                                </Image.Source>
+                                            </Image>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Website}" TextWrapping="Wrap" Margin="12,-2,12,0" Style="{StaticResource PhoneTextSmallStyle}" />
-                                                <TextBlock Text="{Binding Description}" Width="320" TextWrapping="Wrap" Margin="12,0,0,0" Style="{StaticResource PhoneTextSmallStyle}" Foreground="White" />
+                                                <TextBlock Name="Website" Text="{Binding Website}" TextWrapping="Wrap" Margin="12,-2,12,0" Style="{StaticResource PhoneTextSmallStyle}" />
+                                                <TextBlock Name="Desc" Text="{Binding Description}" Width="320" TextWrapping="Wrap" Margin="12,0,0,0" Style="{StaticResource PhoneTextSmallStyle}" Foreground="White" />
                                             </StackPanel>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Image Source="like.png" Margin="10,0,0,0" />
-                                            <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="comment.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="share.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="share_page.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Likes, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="like.png" Margin="10,0,0,0" />
+                                                <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Comments, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="comment.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Shares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding PageShares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share_page.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
                                             <TextBlock Text="·" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
                                             <TextBlock Text="5ч назад" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
-                                <ProgressBar Visibility="Collapsed" IsIndeterminate="true" x:Name="CustomIndeterminateProgressBar" Style="{StaticResource CustomIndeterminateProgressBar}" Margin="0,10,0,0" />
+                                <ProgressBar Visibility="Collapsed" Height="150" IsIndeterminate="true" x:Name="CustomIndeterminateProgressBar" Style="{StaticResource CustomIndeterminateProgressBar}" Margin="0,10,0,0" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
