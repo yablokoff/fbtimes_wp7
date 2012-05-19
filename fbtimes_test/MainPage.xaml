@@ -95,14 +95,22 @@
                                             </StackPanel>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Image Source="like.png" Margin="10,0,0,0" />
-                                            <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="comment.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="share.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
-                                            <Image Source="share_page.png" Margin="7,0,0,0" />
-                                            <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Likes, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="like.png" Margin="10,0,0,0" />
+                                                <TextBlock Text="{Binding Likes}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Comments, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="comment.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Comments}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding Shares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding Shares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Visibility="{Binding PageShares, Converter={StaticResource IntToVisibility}}">
+                                                <Image Source="share_page.png" Margin="7,0,0,0" />
+                                                <TextBlock Text="{Binding PageShares}" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
+                                            </StackPanel>
                                             <TextBlock Text="·" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
                                             <TextBlock Text="5ч назад" Style="{StaticResource PhoneTextSmallStyle}" Margin="5,0,0,0" />
                                         </StackPanel>
